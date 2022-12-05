@@ -1,0 +1,15 @@
+[Unit]
+Description=Proxy server
+After=network.target
+
+[Service]
+ExecStartPre=mkdir -p /var/run/linas /run/linas /var/log/linas
+ExecStart=/usr/bin/pen_proxy --config /etc/linas/pen_proxy.conf
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
+Alias=pen_proxy.service
