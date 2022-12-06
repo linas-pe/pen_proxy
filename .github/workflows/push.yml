@@ -54,7 +54,7 @@ jobs:
           gh-code-scanning-compat: true
           # Force 0 exit code to allow SARIF file generation
           # This will handover control about PR rejection to the GitHub side
-          tool: cppcheck,flawfinder,shellcheck,markdownlint
+          tool: cppcheck
           max-allowed-issues: 2147483647
 
       - name: Upload SARIF results file
