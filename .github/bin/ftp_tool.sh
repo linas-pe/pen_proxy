@@ -7,7 +7,7 @@ URL="https://${PEN_FILE_SERVER}/linas"
 function upload() {
   args="branch=${branch_name}&secret=${UPLOAD_SECRET}"
   curl_args="-o /dev/null -F libpen=@${target_pkg_name}"
-  code=$(curl -sw "%{http_code}" ${curl_args} "${URL}/upload/libpen?${args}" || exit 1)
+  code=$(curl -sw "%{http_code}" "${curl_args}" "${URL}/upload/libpen?${args}" || exit 1)
   if [ "$code" != "200" ]; then
     exit 1
   fi
