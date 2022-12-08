@@ -37,17 +37,6 @@ jobs:
           PEN_FILE_SERVER: ${{secrets.PEN_FILE_SERVER}}
         run: .github/bin/ftp_tool.sh -u
 
-  local-scan:
-    name: Local code scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Shell check
-        run: find -name "*.sh" | xargs shellcheck
-
   codeql-scan:
     name: Codeql Analyze
     runs-on: ubuntu-latest
