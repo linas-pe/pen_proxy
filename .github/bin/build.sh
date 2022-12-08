@@ -16,7 +16,7 @@ build_type=$(basename "$0")
 (
     cd build || exit 1
     if [ "$build_type" == "build_dev.sh" ]; then
-        ../configure  --enable-debug || exit 1
+        ../configure --enable-debug || exit 1
     else
         ../configure --prefix=/usr || exit 1
     fi
