@@ -51,8 +51,8 @@ pen_connector_init(void)
     if (PEN_UNLIKELY(ev == NULL))
         return NULL;
 
-    args.host_ = g_remote_host,
-    args.port_ = g_remote_port,
+    args.host_ = g_remote_host;
+    args.port_ = g_remote_port;
     g_self.ev_ = args.ev_ = ev;
     g_self.pool_ = pen_connect_pool_init(&args);
     if (PEN_UNLIKELY(g_self.pool_ == NULL)) {

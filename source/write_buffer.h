@@ -30,7 +30,7 @@ bool pen_write_buffer_init(void)
 
 void pen_write_buffer_destroy(void);
 
-bool pen_write_buffer_append(pen_event_base_t *eb, char *buf, size_t len)
+bool pen_write_buffer_append(pen_event_base_t *eb, const char *buf, size_t len)
     PEN_NONNULL(1, 2)
     PEN_WARN_UNUSED_RESULT
 ;

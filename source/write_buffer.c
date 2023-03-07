@@ -41,7 +41,7 @@ pen_write_buffer_destroy(void)
 }
 
 bool
-pen_write_buffer_append(pen_event_base_t *eb, char *buf, size_t len)
+pen_write_buffer_append(pen_event_base_t *eb, const char *buf, size_t len)
 {
     pen_write_buffer_t *wb = pen_memory_pool_get(g_self.pool_);
     if (PEN_UNLIKELY(wb == NULL))
