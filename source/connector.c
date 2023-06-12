@@ -17,8 +17,8 @@
  */
 #include "connector.h"
 
-#include <pen_connect_pool.h>
-#include <pen_socket.h>
+#include <pen_socket/pen_connect_pool.h>
+#include <pen_socket/pen_socket.h>
 
 #include "client.h"
 #include "write_buffer.h"

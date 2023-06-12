@@ -17,8 +17,8 @@
  */
 #pragma once
 
-#include <pen_types.h>
-#include <pen_event.h>
+#include <pen_utils/pen_types.h>
+#include <pen_socket/pen_event.h>
 
 PEN_EXTERN_C_START
 

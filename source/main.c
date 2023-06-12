@@ -18,12 +18,11 @@
 
 #include <signal.h>
 
-#include <pen_options.h>
-#include <pen_log.h>
-#include <pen_profile.h>
-#include <pen_signal.h>
-#include <pen_event.h>
-#include <pen_dns.h>
+#include <pen_utils/pen_options.h>
+#include <pen_utils/pen_profile.h>
+#include <pen_socket/pen_signal.h>
+#include <pen_socket/pen_event.h>
+#include <pen_socket/pen_dns.h>
 
 #include "client.h"
 #include "connector.h"
