@@ -17,8 +17,7 @@
  */
 #include "write_buffer.h"
 
-#include <pen_memory_pool.h>
-#include <pen_log.h>
+#include <pen_utils/pen_memory_pool.h>
 
 char pen_read_buf[PEN_GLOBAL_BUF_REAL];
 

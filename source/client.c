@@ -17,15 +17,13 @@
  */
 #include "client.h"
 
-#include <pen_listener.h>
-#include <pen_memory_pool.h>
-#include <pen_log.h>
+#include <pen_utils/pen_memory_pool.h>
+#include <pen_socket/pen_listener.h>
 
 #include "write_buffer.h"
 
-static void _on_read(pen_event_base_t *eb);
+static void _on_event(pen_event_base_t *eb, uint16_t events);
 static void _on_close(pen_event_base_t *eb);
-static bool _on_write(pen_event_base_t *eb);
 
 const char *g_local_host = NULL;
 unsigned short g_local_port = 1234;
@@ -49,9 +47,7 @@ _on_new_client(pen_event_t ev, pen_socket_t fd,
 
     eb = &self->eb_;
     eb->fd_ = fd;
-    eb->on_read_ = _on_read;
-    eb->on_close_ = _on_close;
-    eb->on_write_ = _on_write;
+    eb->on_event_ = _on_event;
 
     if (PEN_UNLIKELY(!pen_connector_new(&self->connector_)))
         goto error;
@@ -172,5 +168,18 @@ _on_write(pen_event_base_t *eb)
     if (eb->wbuf_ == NULL)
         pen_connector_reopen(&self->connector_);
     return true;
+}
+
+static void
+_on_event(pen_event_base_t *eb, uint16_t events)
+{
+    if (events == PEN_EVENT_CLOSE)
+        return _on_close(eb);
+
+    if ((events & PEN_EVENT_WRITE) && !_on_write(eb))
+        return;
+
+    if (events & PEN_EVENT_READ)
+        _on_read(eb);
 }
 
