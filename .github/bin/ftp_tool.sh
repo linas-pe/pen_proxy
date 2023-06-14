@@ -2,8 +2,7 @@
 
 source .github/bin/common.sh
 
-URL="https://${PEN_FILE_SERVER}/linas"
-
+URL="https://${PEN_FILE_SERVER}"
 
 function try_curl() {
   code="-1"
@@ -25,7 +24,7 @@ function upload() {
   echo "upload ${target_pkg_name}"
   args="branch=${branch_name}&secret=${UPLOAD_SECRET}"
   curl_args="--retry 5 -o /dev/null -F libpen=@${target_pkg_name}"
-  code=$(try_curl -sw "%{http_code}" ${curl_args} "${URL}/upload/libpen?${args}")
+  code=$(try_curl -sw "%{http_code}" ${curl_args} "${URL}/api/file?${args}")
   if [ "$code" != "200" ]; then
     exit 1
   fi
@@ -43,7 +42,7 @@ function download() {
     if [ -n "$item" ]; then
       target="${item}-${branch_name}-${os}.${pen_ext}"
       echo "Download ${target} ..."
-      try_curl --retry 5 "${URL}/app/${branch_name}/${target}" -o "${target}"
+      try_curl --retry 5 "${URL}/fs/app/${branch_name}/${target}" -o "${target}"
       if [ "$os" == "windows" ]; then
         7z x "${target}" -olibpen -aoa
       else
@@ -62,7 +61,7 @@ function download_googletest() {
     target="googletest-${os}.${pen_ext}"
     echo "Download ${target} ..."
     mkdir -p googletest
-    try_curl --retry 5 "${URL}/app/${target}" -o "${target}"
+    try_curl --retry 5 "${URL}/fs/app/${target}" -o "${target}"
     if [ "$os" == "windows" ]; then
         7z x "${target}" -ogoogletest -aoa
     else
