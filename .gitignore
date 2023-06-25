@@ -54,3 +54,5 @@ pen.m4
 include/pen.cmake
 include/pen_config.h
 *.swp
+cscope*
+tags

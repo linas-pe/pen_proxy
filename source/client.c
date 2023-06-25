@@ -19,8 +19,7 @@
 
 #include <pen_utils/pen_memory_pool.h>
 #include <pen_socket/pen_listener.h>
-
-#include "write_buffer.h"
+#include <pen_socket/pen_socket.h>
 
 static void _on_event(pen_event_base_t *eb, uint16_t events);
 static void _on_close(pen_event_base_t *eb);
@@ -28,6 +27,9 @@ static void _on_close(pen_event_base_t *eb);
 const char *g_local_host = NULL;
 unsigned short g_local_port = 1234;
 uint16_t g_client_pool_size = 8;
+
+
+char pen_read_buf[PEN_GLOBAL_BUF_REAL];
 
 static struct {
     pen_event_t ev_;
@@ -89,8 +91,8 @@ void
 pen_client_proxy_success(pen_connector_t *connector)
 {
     pen_client_t *self = PEN_ENTRY(connector, pen_client_t, connector_);
-    pen_assert(pen_event_mod_rw(g_self.ev_, &self->eb_),
-            "on client proxy failed.");
+    if (!pen_event_mod_rw(g_self.ev_, &self->eb_))
+        _on_close(&self->eb_);
 }
 
 void
@@ -105,7 +107,6 @@ pen_client_proxy_closed(pen_connector_t *connector)
 static void
 _on_read(pen_event_base_t *eb)
 {
-    extern char pen_read_buf[];
     pen_client_t *self = (pen_client_t *)eb;
     ssize_t ret, wret;
 
@@ -126,19 +127,14 @@ again:
         return;
     }
 
-    wret = write(self->connector_.eb_->fd_, pen_read_buf, ret);
-    if (wret < 0) {
-        if (errno != EAGAIN) {
-            _on_close(eb);
-            return;
-        }
-        wret = 0;
+    wret = pen_send(self->connector_.eb_, pen_read_buf, ret);
+    if (wret == -1) {
+        _on_close(eb);
+        return;
     }
-
-    if (wret < ret) {
-        pen_assert(pen_event_mod_w(g_self.ev_, eb), "on_read error.");
-        pen_assert(pen_write_buffer_append(self->connector_.eb_,
-                   pen_read_buf + wret, ret - wret), "on_read error.");
+    if (wret == 0) {
+        if (!pen_event_mod_w(g_self.ev_, eb))
+            _on_close(eb);
         return;
     }
     if (ret == PEN_GLOBAL_BUF_REAL)
@@ -150,7 +146,7 @@ _on_close(pen_event_base_t *eb)
 {
     pen_client_t *self = (pen_client_t *) eb;
 
-    close(eb->fd_);
+    pen_event_base_close(eb);
     pen_connector_delete(&self->connector_);
     pen_memory_pool_put(g_self.pool_, self);
 }
@@ -158,15 +154,22 @@ _on_close(pen_event_base_t *eb)
 static bool
 _on_write(pen_event_base_t *eb)
 {
-    extern void pen_connector_reopen(pen_connector_t *self);
+    extern bool pen_connector_reopen(pen_connector_t *self);
     pen_client_t *self = (pen_client_t *) eb;
+    int wret;
 
-    if (eb->wbuf_ == NULL)
+    if (PEN_UNLIKELY(pen_queue_empty(&eb->wbuf_)))
         return true;
-    if (!pen_send_write_buffer(eb))
+    wret = pen_send_rest_data(eb);
+    if (wret == -1) {
+        _on_close(eb);
         return false;
-    if (eb->wbuf_ == NULL)
-        pen_connector_reopen(&self->connector_);
+    }
+    if (wret == 1)
+        if (!pen_connector_reopen(&self->connector_)) {
+            _on_close(eb);
+            return false;
+        }
     return true;
 }
 
