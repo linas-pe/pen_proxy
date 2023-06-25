@@ -26,7 +26,6 @@
 
 #include "client.h"
 #include "connector.h"
-#include "write_buffer.h"
 
 static const char *_profile = NULL;
 static bool running = true;
@@ -100,7 +99,6 @@ main(int argc, char *argv[])
     pen_assert(pen_signal(SIGTERM, _on_signal), "SIGTERM init failed.");
     pen_assert(pen_signal(SIGINT, _on_signal), "SIGINT init failed.");
 
-    pen_assert(pen_write_buffer_init(), "write buffer init failed");
     pen_assert(pen_dns_init(evs[0]), "dns init failed.");
     pen_assert(pen_client_init(evs[0]), "client init failed");
 
@@ -113,7 +111,6 @@ main(int argc, char *argv[])
     pen_client_destroy();
     pen_signal_destroy();
     pen_dns_destroy();
-    pen_write_buffer_destroy();
     pen_event_destroy(evs[0]);
     pen_log_destroy();
     return 0;

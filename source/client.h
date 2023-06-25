@@ -24,6 +24,8 @@
 
 PEN_EXTERN_C_START
 
+#define PEN_GLOBAL_BUF_REAL 1024
+
 typedef struct {
     pen_event_base_t eb_;
     pen_connector_t connector_;
