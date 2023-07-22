@@ -37,15 +37,15 @@ static struct {
     pen_memory_pool_t pool_;
 } g_self;
 
-static bool
-_on_new_client(pen_event_t ev, pen_socket_t fd,
+static pen_event_base_t *
+_on_new_client(pen_event_t ev, int fd,
         void *user PEN_UNUSED, struct sockaddr_in *addr PEN_UNUSED)
 {
     pen_event_base_t *eb;
     pen_client_t *self = pen_memory_pool_get(g_self.pool_);
 
     if (PEN_UNLIKELY(self == NULL))
-        return false;
+        return NULL;
 
     eb = &self->eb_;
     eb->fd_ = fd;
@@ -57,10 +57,10 @@ _on_new_client(pen_event_t ev, pen_socket_t fd,
     if (PEN_UNLIKELY(!pen_event_add_w(ev, eb)))
         goto error;
 
-    return true;
+    return eb;
 error:
     pen_memory_pool_put(g_self.pool_, self);
-    return false;
+    return NULL;
 }
 
 bool
