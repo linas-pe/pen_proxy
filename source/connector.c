@@ -26,7 +26,6 @@ static void _on_read(void *self);
 static void _on_close(void *self);
 static bool _on_write(void *self);
 static void _on_connected(void *self);
-extern void pen_client_proxy_closed(pen_connector_t *self);
 
 const char *g_remote_host = "127.0.0.1";
 unsigned short g_remote_port = 1234;
@@ -83,25 +82,9 @@ pen_connector_new(pen_connector_t *self)
 }
 
 void
-pen_connector_delete(pen_connector_t *self)
+pen_connector_close(pen_connector_t *self)
 {
-    if (self->eb_ == NULL)
-        return;
     pen_connect_pool_close(self->eb_);
-    self->eb_ = NULL;
-}
-
-bool
-pen_connector_reopen(pen_connector_t *self)
-{
-    return pen_event_mod_rw(g_self.ev_, self->eb_);
-}
-
-static inline pen_event_base_t *
-_client_eb(pen_connector_t *self)
-{
-    pen_client_t *client = PEN_ENTRY(self, pen_client_t, connector_);
-    return &client->eb_;
 }
 
 ///////////////////////////// Handler connector events ////////////////////////
@@ -109,80 +92,25 @@ _client_eb(pen_connector_t *self)
 static void
 _on_connected(void *user)
 {
-    extern void pen_client_proxy_success(pen_connector_t *self);
-    pen_client_proxy_success((pen_connector_t*)user);
+    extern void pen_client_proxy_success(pen_event_t ev, pen_connector_t *self);
+    pen_client_proxy_success(g_self.ev_, (pen_connector_t*)user);
 }
 
 static void
-_on_read(void *user)
+_on_read(void *user PEN_UNUSED)
 {
-    extern char pen_read_buf[];
-    pen_connector_t *self = (pen_connector_t *)user;
-    pen_event_base_t *eb = self->eb_;
-    ssize_t ret, wret;
-
-    if (eb == NULL)
-        return;
-again:
-    ret = read(eb->fd_, pen_read_buf, PEN_GLOBAL_BUF_REAL);
-    if (ret < 0) {
-        if (errno == EAGAIN) {
-            errno = 0;
-            return;
-        }
-        pen_client_proxy_closed(self);
-        return;
-    }
-
-    if (ret == 0) {
-        PEN_WARN("[client] read 0 size!");
-        pen_client_proxy_closed(self);
-        return;
-    }
-
-    wret = pen_send(_client_eb(self), pen_read_buf, ret);
-    if (wret == -1) {
-        pen_client_proxy_closed(self);
-        return;
-    }
-    if (wret == 0) {
-        if (!pen_event_mod_w(g_self.ev_, eb))
-            pen_client_proxy_closed(self);
-        return;
-    }
-    if (ret == PEN_GLOBAL_BUF_REAL)
-        goto again;
+    pen_assert2(false);
 }
 
 static void
-_on_close(void *user)
+_on_close(void *user PEN_UNUSED)
 {
-    pen_connector_t *self = user;
-
-    self->eb_ = NULL;
-    pen_client_proxy_closed(self);
 }
 
 static bool
-_on_write(void *user)
+_on_write(void *user PEN_UNUSED)
 {
-    extern void pen_client_proxy_success(pen_connector_t *self);
-    pen_connector_t *self = (pen_connector_t *)user;
-    pen_event_base_t *eb = self->eb_;
-    int wret;
-
-    if (eb == NULL)
-        return true;
-    if (pen_queue_empty(&eb->wbuf_))
-        return true;
-    wret = pen_send_rest_data(eb);
-    if (wret == -1) {
-        pen_client_proxy_closed(self);
-        return false;
-    }
-    if (wret == 1)
-        pen_client_proxy_success(self);
-
+    pen_assert2(false);
     return true;
 }
 

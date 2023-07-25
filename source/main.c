@@ -23,6 +23,7 @@
 #include <pen_socket/pen_signal.h>
 #include <pen_socket/pen_event.h>
 #include <pen_socket/pen_dns.h>
+#include <pen_socket/pen_proxy.h>
 
 #include "client.h"
 #include "connector.h"
@@ -88,9 +89,6 @@ main(int argc, char *argv[])
     if (!_init_profile())
         return 1;
 
-    if (PEN_UNLIKELY(!pen_log_init()))
-        return 1;
-
     pen_socket_init_once();
 
     evs[0] = pen_event_init(3);
@@ -99,6 +97,7 @@ main(int argc, char *argv[])
     pen_assert(pen_signal(SIGTERM, _on_signal), "SIGTERM init failed.");
     pen_assert(pen_signal(SIGINT, _on_signal), "SIGINT init failed.");
 
+    pen_assert2(pen_event_proxy_init());
     pen_assert(pen_dns_init(evs[0]), "dns init failed.");
     pen_assert(pen_client_init(evs[0]), "client init failed");
 
