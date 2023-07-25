@@ -24,7 +24,6 @@ PEN_EXTERN_C_START
 
 typedef struct {
     pen_event_base_t *eb_;
-    bool connected_;
 } pen_connector_t;
 
 pen_event_t pen_connector_init(void)
@@ -39,6 +38,10 @@ bool pen_connector_new(pen_connector_t *self)
 ;
 
 void pen_connector_delete(pen_connector_t *self)
+    PEN_NONNULL(1)
+;
+
+void pen_connector_close(pen_connector_t *self)
     PEN_NONNULL(1)
 ;
 

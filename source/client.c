@@ -19,6 +19,7 @@
 
 #include <pen_utils/pen_memory_pool.h>
 #include <pen_socket/pen_listener.h>
+#include <pen_socket/pen_proxy.h>
 #include <pen_socket/pen_socket.h>
 
 static void _on_event(pen_event_base_t *eb, uint16_t events);
@@ -27,9 +28,6 @@ static void _on_close(pen_event_base_t *eb);
 const char *g_local_host = NULL;
 unsigned short g_local_port = 1234;
 uint16_t g_client_pool_size = 8;
-
-
-char pen_read_buf[PEN_GLOBAL_BUF_REAL];
 
 static struct {
     pen_event_t ev_;
@@ -88,58 +86,16 @@ pen_client_destroy(void)
 }
 
 void
-pen_client_proxy_success(pen_connector_t *connector)
+pen_client_proxy_success(pen_event_t ev, pen_connector_t *connector)
 {
     pen_client_t *self = PEN_ENTRY(connector, pen_client_t, connector_);
-    if (!pen_event_mod_rw(g_self.ev_, &self->eb_))
-        _on_close(&self->eb_);
-}
-
-void
-pen_client_proxy_closed(pen_connector_t *connector)
-{
-    pen_client_t *self = PEN_ENTRY(connector, pen_client_t, connector_);
+    if (pen_event_proxy(&self->eb_, g_self.ev_, connector->eb_, ev))
+        return;
+    pen_connector_close(connector);
     _on_close(&self->eb_);
 }
 
 /////////////////////////// Handle client event ///////////////////////////////
-
-static void
-_on_read(pen_event_base_t *eb)
-{
-    pen_client_t *self = (pen_client_t *)eb;
-    ssize_t ret, wret;
-
-again:
-    ret = read(eb->fd_, pen_read_buf, PEN_GLOBAL_BUF_REAL);
-    if (ret < 0) {
-        if (errno == EAGAIN) {
-            errno = 0;
-            return;
-        }
-        _on_close(eb);
-        return;
-    }
-
-    if (ret == 0) {
-        PEN_WARN("[client] read 0 size!");
-        _on_close(eb);
-        return;
-    }
-
-    wret = pen_send(self->connector_.eb_, pen_read_buf, ret);
-    if (wret == -1) {
-        _on_close(eb);
-        return;
-    }
-    if (wret == 0) {
-        if (!pen_event_mod_w(g_self.ev_, eb))
-            _on_close(eb);
-        return;
-    }
-    if (ret == PEN_GLOBAL_BUF_REAL)
-        goto again;
-}
 
 static void
 _on_close(pen_event_base_t *eb)
@@ -147,30 +103,7 @@ _on_close(pen_event_base_t *eb)
     pen_client_t *self = (pen_client_t *) eb;
 
     pen_event_base_close(eb);
-    pen_connector_delete(&self->connector_);
     pen_memory_pool_put(g_self.pool_, self);
-}
-
-static bool
-_on_write(pen_event_base_t *eb)
-{
-    extern bool pen_connector_reopen(pen_connector_t *self);
-    pen_client_t *self = (pen_client_t *) eb;
-    int wret;
-
-    if (PEN_UNLIKELY(pen_queue_empty(&eb->wbuf_)))
-        return true;
-    wret = pen_send_rest_data(eb);
-    if (wret == -1) {
-        _on_close(eb);
-        return false;
-    }
-    if (wret == 1)
-        if (!pen_connector_reopen(&self->connector_)) {
-            _on_close(eb);
-            return false;
-        }
-    return true;
 }
 
 static void
@@ -178,11 +111,5 @@ _on_event(pen_event_base_t *eb, uint16_t events)
 {
     if (events == PEN_EVENT_CLOSE)
         return _on_close(eb);
-
-    if ((events & PEN_EVENT_WRITE) && !_on_write(eb))
-        return;
-
-    if (events & PEN_EVENT_READ)
-        _on_read(eb);
 }
 
