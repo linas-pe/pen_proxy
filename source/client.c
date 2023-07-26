@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "client.h"
+#include "common.h"
 
 #include <pen_utils/pen_memory_pool.h>
 #include <pen_socket/pen_listener.h>
@@ -23,7 +23,6 @@
 #include <pen_socket/pen_socket.h>
 
 static void _on_event(pen_event_base_t *eb, uint16_t events);
-static void _on_close(pen_event_base_t *eb);
 
 const char *g_local_host = NULL;
 unsigned short g_local_port = 1234;
@@ -39,23 +38,26 @@ static pen_event_base_t *
 _on_new_client(pen_event_t ev, int fd,
         void *user PEN_UNUSED, struct sockaddr_in *addr PEN_UNUSED)
 {
-    pen_event_base_t *eb;
-    pen_client_t *self = pen_memory_pool_get(g_self.pool_);
+    extern pen_connector_t pen_connector_new(pen_client_t);
+    extern void pen_connector_close(pen_connector_t self);
+    pen_client_t self = pen_memory_pool_get(g_self.pool_);
 
     if (PEN_UNLIKELY(self == NULL))
         return NULL;
 
-    eb = &self->eb_;
-    eb->fd_ = fd;
-    eb->on_event_ = _on_event;
+    self->fd_ = fd;
+    self->on_event_ = _on_event;
+    self->user_ = pen_connector_new(self);
 
-    if (PEN_UNLIKELY(!pen_connector_new(&self->connector_)))
+    if (PEN_UNLIKELY(self->user_ == NULL))
         goto error;
 
-    if (PEN_UNLIKELY(!pen_event_add_w(ev, eb)))
+    if (PEN_UNLIKELY(!pen_event_add_w(ev, self))) {
+        PEN_ERROR("[client] on_new_client add event failed !!!!");
+        pen_connector_close(self->user_);
         goto error;
-
-    return eb;
+    }
+    return self;
 error:
     pen_memory_pool_put(g_self.pool_, self);
     return NULL;
@@ -64,13 +66,13 @@ error:
 bool
 pen_client_init(pen_event_t ev)
 {
-    g_self.pool_ = PEN_MEMORY_POOL_INIT(g_client_pool_size, pen_client_t);
+    g_self.pool_ = PEN_MEMORY_POOL_INIT(g_client_pool_size, pen_event_base_t);
     if (PEN_UNLIKELY(g_self.pool_ == NULL))
         return false;
 
     g_self.ev_ = ev;
     g_self.listener_ = pen_listener_init(ev, g_local_host,
-            g_local_port, 128, _on_new_client, NULL);
+            g_local_port, 16, _on_new_client, NULL);
     if (PEN_LIKELY(g_self.listener_ != NULL))
         return true;
 
@@ -85,25 +87,21 @@ pen_client_destroy(void)
     pen_memory_pool_destroy(g_self.pool_);
 }
 
-void
-pen_client_proxy_success(pen_event_t ev, pen_connector_t *connector)
+static inline void
+_on_close(pen_client_t self)
 {
-    pen_client_t *self = PEN_ENTRY(connector, pen_client_t, connector_);
-    if (pen_event_proxy(&self->eb_, g_self.ev_, connector->eb_, ev))
-        return;
-    pen_connector_close(connector);
-    _on_close(&self->eb_);
+    pen_event_base_close(self);
+    pen_memory_pool_put(g_self.pool_, self);
 }
 
-/////////////////////////// Handle client event ///////////////////////////////
-
-static void
-_on_close(pen_event_base_t *eb)
+void
+pen_client_proxy_success(pen_event_t ev, pen_client_t self)
 {
-    pen_client_t *self = (pen_client_t *) eb;
-
-    pen_event_base_close(eb);
-    pen_memory_pool_put(g_self.pool_, self);
+    extern void pen_connector_close(pen_connector_t self);
+    if (pen_event_proxy(self, g_self.ev_, self->user_, ev))
+        return;
+    pen_connector_close(self->user_);
+    _on_close(self);
 }
 
 static void

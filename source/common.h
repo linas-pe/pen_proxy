@@ -22,28 +22,8 @@
 
 PEN_EXTERN_C_START
 
-typedef struct {
-    pen_event_base_t *eb_;
-} pen_connector_t;
-
-pen_event_t pen_connector_init(void)
-    PEN_WARN_UNUSED_RESULT
-;
-
-void pen_connector_destroy(void);
-
-bool pen_connector_new(pen_connector_t *self)
-    PEN_NONNULL(1)
-    PEN_WARN_UNUSED_RESULT
-;
-
-void pen_connector_delete(pen_connector_t *self)
-    PEN_NONNULL(1)
-;
-
-void pen_connector_close(pen_connector_t *self)
-    PEN_NONNULL(1)
-;
+typedef pen_event_base_t *pen_connector_t;
+typedef pen_event_base_t *pen_client_t;
 
 PEN_EXTERN_C_END
 
