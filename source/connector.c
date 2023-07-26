@@ -15,12 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "connector.h"
+#include "common.h"
 
 #include <pen_socket/pen_connect_pool.h>
 #include <pen_socket/pen_socket.h>
-
-#include "client.h"
 
 static void _on_read(void *self);
 static void _on_close(void *self);
@@ -68,23 +66,16 @@ pen_connector_destroy(void)
     pen_event_destroy(g_self.ev_);
 }
 
-bool
-pen_connector_new(pen_connector_t *self)
+pen_connector_t
+pen_connector_new(pen_client_t client)
 {
-    pen_event_base_t *eb;
-
-    eb = pen_connect_pool_get(g_self.pool_, self);
-    if (PEN_UNLIKELY(eb == NULL))
-        return false;
-    self->eb_ = eb;
-
-    return true;
+    return pen_connect_pool_get(g_self.pool_, client);
 }
 
 void
-pen_connector_close(pen_connector_t *self)
+pen_connector_close(pen_connector_t self)
 {
-    pen_connect_pool_close(self->eb_);
+    pen_connect_pool_close(self);
 }
 
 ///////////////////////////// Handler connector events ////////////////////////
@@ -92,8 +83,8 @@ pen_connector_close(pen_connector_t *self)
 static void
 _on_connected(void *user)
 {
-    extern void pen_client_proxy_success(pen_event_t ev, pen_connector_t *self);
-    pen_client_proxy_success(g_self.ev_, (pen_connector_t*)user);
+    extern void pen_client_proxy_success(pen_event_t ev, pen_client_t self);
+    pen_client_proxy_success(g_self.ev_, (pen_client_t)user);
 }
 
 static void

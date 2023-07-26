@@ -25,9 +25,6 @@
 #include <pen_socket/pen_dns.h>
 #include <pen_socket/pen_proxy.h>
 
-#include "client.h"
-#include "connector.h"
-
 static const char *_profile = NULL;
 static bool running = true;
 
@@ -83,6 +80,10 @@ _on_signal(int id PEN_UNUSED)
 int
 main(int argc, char *argv[])
 {
+    extern bool pen_client_init(pen_event_t ev);
+    extern void pen_client_destroy(void);
+    extern pen_event_t pen_connector_init(void);
+    extern void pen_connector_destroy(void);
     pen_event_t evs[2];
 
     _init_options(argc, argv);
@@ -110,6 +111,7 @@ main(int argc, char *argv[])
     pen_client_destroy();
     pen_signal_destroy();
     pen_dns_destroy();
+    pen_event_proxy_destroy();
     pen_event_destroy(evs[0]);
     pen_log_destroy();
     return 0;
