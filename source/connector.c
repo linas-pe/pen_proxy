@@ -94,8 +94,11 @@ _on_read(void *user PEN_UNUSED)
 }
 
 static void
-_on_close(void *user PEN_UNUSED)
+_on_close(void *user)
 {
+    extern void pen_client_proxy_failed(pen_client_t self);
+    if (user != NULL)
+        pen_client_proxy_failed(user);
 }
 
 static bool

@@ -90,18 +90,35 @@ pen_client_destroy(void)
 static inline void
 _on_close(pen_client_t self)
 {
+    extern void pen_connector_close(pen_connector_t self);
+    pen_connector_t conn = self->user_;
+
     pen_event_base_close(self);
     pen_memory_pool_put(g_self.pool_, self);
+
+    if (conn != NULL)
+        pen_connector_close(conn);
 }
 
 void
 pen_client_proxy_success(pen_event_t ev, pen_client_t self)
 {
     extern void pen_connector_close(pen_connector_t self);
-    if (pen_event_proxy(self, g_self.ev_, self->user_, ev))
+
+    pen_connector_t conn = self->user_;
+    self->user_ = NULL;
+    conn->user_ = NULL;
+    if (pen_event_proxy(self, g_self.ev_, conn, ev))
         return;
-    pen_connector_close(self->user_);
+    pen_connector_close(conn);
     _on_close(self);
+}
+
+void
+pen_client_proxy_failed(pen_client_t self)
+{
+    pen_event_base_close(self);
+    pen_memory_pool_put(g_self.pool_, self);
 }
 
 static void
