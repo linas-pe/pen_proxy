@@ -20,10 +20,10 @@
 #include <pen_socket/pen_connect_pool.h>
 #include <pen_socket/pen_socket.h>
 
-static void _on_read(void *self);
-static void _on_close(void *self);
-static bool _on_write(void *self);
-static void _on_connected(void *self);
+static void _on_read(pen_event_base_t *self);
+static void _on_close(pen_event_base_t *self);
+static bool _on_write(pen_event_base_t *self);
+static bool _on_connected(pen_event_base_t *self);
 
 const char *g_remote_host = "127.0.0.1";
 unsigned short g_remote_port = 1234;
@@ -80,29 +80,30 @@ pen_connector_close(pen_connector_t self)
 
 ///////////////////////////// Handler connector events ////////////////////////
 
-static void
-_on_connected(void *user)
+static bool
+_on_connected(pen_event_base_t *eb)
 {
     extern void pen_client_proxy_success(pen_event_t ev, pen_client_t self);
-    pen_client_proxy_success(g_self.ev_, (pen_client_t)user);
+    pen_client_proxy_success(g_self.ev_, (pen_client_t)eb->user_);
+    return true;
 }
 
 static void
-_on_read(void *user PEN_UNUSED)
+_on_read(pen_event_base_t *eb PEN_UNUSED)
 {
     pen_assert2(false);
 }
 
 static void
-_on_close(void *user)
+_on_close(pen_event_base_t *eb)
 {
     extern void pen_client_proxy_failed(pen_client_t self);
-    if (user != NULL)
-        pen_client_proxy_failed(user);
+    if (eb->user_ != NULL)
+        pen_client_proxy_failed(eb->user_);
 }
 
 static bool
-_on_write(void *user PEN_UNUSED)
+_on_write(pen_event_base_t *eb PEN_UNUSED)
 {
     pen_assert2(false);
     return true;
